@@ -281,6 +281,9 @@ app.put('/api/ucenici/:id', async (req, res) => {
         res.json({ success: true, data: azur }); 
     } catch (err) { res.status(400).json({ success: false, error: err.message }); }
 });
+app.get('/registracija', (req, res) => {
+    res.sendFile(__dirname + '/registracija.html');
+});
 
 app.delete('/api/ucenici/:id', async (req, res) => {
     try { await Ucenik.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (err) { res.status(400).json({ success: false, error: err.message }); }
