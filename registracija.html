@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Креирање профила - мој есДневник</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #2d3748;
+        }
+
+        /* Главна картица на почетној */
+        .welcome-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+            max-width: 550px;
+            width: 90%;
+            border-top: 5px solid #0c365a;
+        }
+
+        h1 {
+            color: #0c365a;
+            font-size: 22px;
+            margin-bottom: 25px;
+            line-height: 1.4;
+        }
+
+        .btn-pocnimo {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 4px 6px rgba(26, 115, 232, 0.2);
+        }
+
+        .btn-pocnimo:hover {
+            background-color: #155cb4;
+        }
+
+        /* ПОЗАДИНА ПРОЗОРЧИЋА (MODAL) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(12, 54, 90, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            color: #0c365a;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-btn {
+            cursor: pointer;
+            color: #a0aec0;
+            font-size: 22px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        /* ЗЕЛЕНО КОРИСНИЧКО ИМЕ СТИЛ */
+        .zeleni-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #28a745; /* Зелен оквир */
+            color: #28a745; /* Зелен текст када се куца */
+            font-weight: bold;
+            border-radius: 6px;
+            font-size: 15px;
+            outline: none;
+            background-color: #f4fbf6;
+        }
+
+        .obicni-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 15px;
+            outline: none;
+        }
+        .obicni-input:focus {
+            border-color: #1a73e8;
+        }
+
+        /* Дугмићи у прозорчићу */
+        .btn-modal {
+            width: 100%;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-plavo { background-color: #1a73e8; }
+        .btn-plavo:hover { background-color: #155cb4; }
+        .btn-zeleno { background-color: #28a745; }
+        .btn-zeleno:hover { background-color: #218838; }
+
+        /* Кораци (сакривање и приказивање) */
+        .korak {
+            display: none;
+        }
+        .korak.aktivan {
+            display: block;
+        }
+
+        /* Системске поруке */
+        .poruka {
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+            font-weight: 500;
+        }
+        .poruka.uspeh {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .poruka.greska {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="welcome-container">
+        <h1>Добродошли на креирање профила за мој есДневник (mojesdnevnik.onrender.com)</h1>
+        <button class="btn-pocnimo" onclick="otvoriProzor()">Почнимо</button>
+    </div>
+
+    <div class="modal-overlay" id="mojModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span id="modal-naslov"><i class="fa-solid fa-user"></i> Корак 1 од 2</span>
+                <span class="close-btn" onclick="zatvoriProzor()">&times;</span>
+            </div>
+            
+            <div id="korak-1" class="korak aktivan">
+                <div class="form-group">
+                    <label for="reg-username">Унесите жељено корисничко име:</label>
+                    <input type="text" id="reg-username" class="zeleni-input" placeholder="Корисничко име...">
+                </div>
+                <button class="btn-modal btn-plavo" onclick="sledeciKorak()">Даље <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+
+            <div id="korak-2" class="korak">
+                <div class="form-group">
+                    <label for="reg-password">Унесите жељену лозинку:</label>
+                    <input type="password" id="reg-password" class="obicni-input" placeholder="Лозинка...">
+                </div>
+                <button class="btn-modal btn-zeleno" onclick="izvrsiRegistraciju()">Креирај налог <i class="fa-solid fa-check"></i></button>
+            </div>
+
+            <div id="status-poruka" class="poruka"></div>
+        </div>
+    </div>
+
+    <script>
+        // Отварање прозорчића и ресетовање на Корак 1
+        function otvoriProzor() {
+            document.getElementById('mojModal').classList.add('active');
+            document.getElementById('korak-1').classList.add('aktivan');
+            document.getElementById('korak-2').classList.remove('aktivan');
+            document.getElementById('modal-naslov').innerHTML = '<i class="fa-solid fa-user"></i> Корак 1 од 2';
+            document.getElementById('status-poruka').style.display = 'none';
+            document.getElementById('reg-username').value = '';
+            document.getElementById('reg-password').value = '';
+        }
+
+        function zatvoriProzor() {
+            document.getElementById('mojModal').classList.remove('active');
+        }
+
+        // Прелазак са корисничког имена на лозинку
+        function sledeciKorak() {
+            let user = document.getElementById('reg-username').value.trim();
+            let divPoruka = document.getElementById('status-poruka');
+
+            if(!user) {
+                divPoruka.className = "poruka greska";
+                divPoruka.innerText = "Грешка: Морате унети корисничко име!";
+                return;
+            }
+
+            // Сакриј корак 1, прикажи корак 2
+            document.getElementById('korak-1').classList.remove('aktivan');
+            document.getElementById('korak-2').classList.add('aktivan');
+            document.getElementById('modal-naslov').innerHTML = '<i class="fa-solid fa-lock"></i> Корак 2 од 2';
+            divPoruka.style.display = 'none'; // Склони стару грешку ако је била ту
+        }
+
+        // Коначно слање података на твој главни Render сервер
+        async function izvrsiRegistraciju() {
+    let user = document.getElementById('reg-username').value.trim();
+    let pass = document.getElementById('reg-password').value.trim();
+    let divPoruka = document.getElementById('status-poruka');
+
+    if(!pass) {
+        divPoruka.className = "poruka greska";
+        divPoruka.innerText = "Грешка: Морате унети лозинку!";
+        return;
+    }
+
+    try {
+        // Шаљемо податке на твој сервер
+        let odgovor = await fetch('/api/registracija', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ korisnickoIme: user, lozinka: pass })
+        });
+
+        let rezultat = await odgovor.json();
+
+        if(odgovor.ok) {
+            divPoruka.className = "poruka uspeh";
+            divPoruka.innerText = "Успешно! Налог је креиран и активан за коришћење.";
+            // Овде више нема преусмеравања, само стоји порука
+        } else {
+            divPoruka.className = "poruka greska";
+            divPoruka.innerText = "Грешка: " + (rezultat.poruka || "Корисничко име је заузето.");
+        }
+    } catch (err) {
+        divPoruka.className = "poruka greska";
+        divPoruka.innerText = "Грешка: Неуспешно повезивање са сервером.";
+    }
+}
+    </script>
+</body>
+</html>
