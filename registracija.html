@@ -1,302 +1,293 @@
-<!DOCTYPE html>
-<html lang="sr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Креирање профила - мој есДневник</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-    
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Roboto', sans-serif;
-        }
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcryptjs'); // Zaštita za lozinke
 
-        body {
-            background-color: #f4f6f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: #2d3748;
-        }
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-        /* Главна картица на почетној */
-        .welcome-container {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            text-align: center;
-            max-width: 550px;
-            width: 90%;
-            border-top: 5px solid #0c365a;
-        }
+app.use(cors());
+app.use(express.json());
 
-        h1 {
-            color: #0c365a;
-            font-size: 22px;
-            margin-bottom: 25px;
-            line-height: 1.4;
-        }
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/ednevnik';
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('✅ Uspešno povezan sa MongoDB bazom!'))
+  .catch(err => console.error('❌ Greška pri povezivanju sa bazom:', err));
 
-        .btn-pocnimo {
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            padding: 14px 40px;
-            font-size: 16px;
-            font-weight: 500;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-            box-shadow: 0 4px 6px rgba(26, 115, 232, 0.2);
-        }
+// --- MONGODB ŠEME ---
 
-        .btn-pocnimo:hover {
-            background-color: #155cb4;
-        }
+const PredmetSchema = new mongoose.Schema({
+    id: String,      
+    naziv: String    
+});
+const Predmet = mongoose.model('Predmet', PredmetSchema);
 
-        /* ПОЗАДИНА ПРОЗОРЧИЋА (MODAL) */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(12, 54, 90, 0.6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-            z-index: 1000;
-        }
+const OcenaSchema = new mongoose.Schema({
+    ucenikId: String,
+    predmet: String,
+    vrednost: String, 
+    jeZakljucna: Boolean,
+    period: String,
+    ulaziUProsek: Boolean, 
+    napomena: String,
+    datum: { type: Date, default: Date.now }
+});
+const Ocena = mongoose.model('Ocena', OcenaSchema);
 
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
+const OdeljenjeSchema = new mongoose.Schema({
+    naziv: String    
+});
+const Odeljenje = mongoose.model('Odeljenje', OdeljenjeSchema);
 
-        .modal-box {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-            position: relative;
-        }
+const NastavnikSchema = new mongoose.Schema({
+    ime: String,
+    uloga: String,
+    username: String,
+    password: { type: String, default: "admin123", select: false }, // Ignoriše se pri običnoj pretrazi
+    odeljenja: [String],
+    predmeti: [String]
+});
 
-        .modal-header {
-            margin-bottom: 20px;
-            color: #0c365a;
-            font-size: 18px;
-            font-weight: 700;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .close-btn {
-            cursor: pointer;
-            color: #a0aec0;
-            font-size: 22px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 14px;
-            color: #4a5568;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        /* ЗЕЛЕНО КОРИСНИЧКО ИМЕ СТИЛ */
-        .zeleni-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #28a745; /* Зелен оквир */
-            color: #28a745; /* Зелен текст када се куца */
-            font-weight: bold;
-            border-radius: 6px;
-            font-size: 15px;
-            outline: none;
-            background-color: #f4fbf6;
-        }
-
-        .obicni-input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cbd5e0;
-            border-radius: 6px;
-            font-size: 15px;
-            outline: none;
-        }
-        .obicni-input:focus {
-            border-color: #1a73e8;
-        }
-
-        /* Дугмићи у прозорчићу */
-        .btn-modal {
-            width: 100%;
-            color: white;
-            border: none;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: 500;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        .btn-plavo { background-color: #1a73e8; }
-        .btn-plavo:hover { background-color: #155cb4; }
-        .btn-zeleno { background-color: #28a745; }
-        .btn-zeleno:hover { background-color: #218838; }
-
-        /* Кораци (сакривање и приказивање) */
-        .korak {
-            display: none;
-        }
-        .korak.aktivan {
-            display: block;
-        }
-
-        /* Системске поруке */
-        .poruka {
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            margin-top: 15px;
-            text-align: center;
-            display: none;
-            font-weight: 500;
-        }
-        .poruka.uspeh {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            display: block;
-        }
-        .poruka.greska {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="welcome-container">
-        <h1>Добродошли на креирање профила за мој есДневник (mojesdnevnik.onrender.com)</h1>
-        <button class="btn-pocnimo" onclick="otvoriProzor()">Почнимо</button>
-    </div>
-
-    <div class="modal-overlay" id="mojModal">
-        <div class="modal-box">
-            <div class="modal-header">
-                <span id="modal-naslov"><i class="fa-solid fa-user"></i> Корак 1 од 2</span>
-                <span class="close-btn" onclick="zatvoriProzor()">&times;</span>
-            </div>
-            
-            <div id="korak-1" class="korak aktivan">
-                <div class="form-group">
-                    <label for="reg-username">Унесите жељено корисничко име:</label>
-                    <input type="text" id="reg-username" class="zeleni-input" placeholder="Корисничко име...">
-                </div>
-                <button class="btn-modal btn-plavo" onclick="sledeciKorak()">Даље <i class="fa-solid fa-arrow-right"></i></button>
-            </div>
-
-            <div id="korak-2" class="korak">
-                <div class="form-group">
-                    <label for="reg-password">Унесите жељену лозинку:</label>
-                    <input type="password" id="reg-password" class="obicni-input" placeholder="Лозинка...">
-                </div>
-                <button class="btn-modal btn-zeleno" onclick="izvrsiRegistraciju()">Креирај налог <i class="fa-solid fa-check"></i></button>
-            </div>
-
-            <div id="status-poruka" class="poruka"></div>
-        </div>
-    </div>
-
-    <script>
-        // Отварање прозорчића и ресетовање на Корак 1
-        function otvoriProzor() {
-            document.getElementById('mojModal').classList.add('active');
-            document.getElementById('korak-1').classList.add('aktivan');
-            document.getElementById('korak-2').classList.remove('aktivan');
-            document.getElementById('modal-naslov').innerHTML = '<i class="fa-solid fa-user"></i> Корак 1 од 2';
-            document.getElementById('status-poruka').style.display = 'none';
-            document.getElementById('reg-username').value = '';
-            document.getElementById('reg-password').value = '';
-        }
-
-        function zatvoriProzor() {
-            document.getElementById('mojModal').classList.remove('active');
-        }
-
-        // Прелазак са корисничког имена на лозинку
-        function sledeciKorak() {
-            let user = document.getElementById('reg-username').value.trim();
-            let divPoruka = document.getElementById('status-poruka');
-
-            if(!user) {
-                divPoruka.className = "poruka greska";
-                divPoruka.innerText = "Грешка: Морате унети корисничко име!";
-                return;
-            }
-
-            // Сакриј корак 1, прикажи корак 2
-            document.getElementById('korak-1').classList.remove('aktivan');
-            document.getElementById('korak-2').classList.add('aktivan');
-            document.getElementById('modal-naslov').innerHTML = '<i class="fa-solid fa-lock"></i> Корак 2 од 2';
-            divPoruka.style.display = 'none'; // Склони стару грешку ако је била ту
-        }
-
-        // Коначно слање података на твој главни Render сервер
-        async function izvrsiRegistraciju() {
-    let user = document.getElementById('reg-username').value.trim();
-    let pass = document.getElementById('reg-password').value.trim();
-    let divPoruka = document.getElementById('status-poruka');
-
-    if(!pass) {
-        divPoruka.className = "poruka greska";
-        divPoruka.innerText = "Грешка: Морате унети лозинку!";
-        return;
-    }
-
+// Middleware koji automatski hesira lozinku pre nego što se nastavnik sačuva u bazu
+NastavnikSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) return next();
     try {
-        // Шаљемо податке на твој сервер
-        let odgovor = await fetch('/api/registracija', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ korisnickoIme: user, lozinka: pass })
-        });
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
 
-        let rezultat = await odgovor.json();
+const Nastavnik = mongoose.model('Nastavnik', NastavnikSchema);
 
-        if(odgovor.ok) {
-            divPoruka.className = "poruka uspeh";
-            divPoruka.innerText = "Успешно! Налог је креиран и активан за коришћење.";
-            // Овде више нема преусмеравања, само стоји порука
+const CasSchema = new mongoose.Schema({
+    lekcija: String,
+    rbr: String,
+    type: String,
+    odeljenje: String,
+    predmetId: String,
+    datum: String
+});
+const Cas = mongoose.model('Cas', CasSchema);
+
+const UcenikSchema = new mongoose.Schema({
+    ime: String,
+    odeljenje: String,
+    ocena_vladanja: { type: String, default: "5" }, 
+    ocene: [{ 
+        id: Number, 
+        tip: String,        
+        vrednost: String,   
+        vrsta: String,      
+        predmet: String, 
+        datum: String       
+    }],
+    izostanci: [{ 
+        lekcija: String, 
+        predmet: String, 
+        datum: String, 
+        status: { type: String, default: "нерегулисано" } 
+    }],
+    vladanje_lista: [{ 
+        id: Number, 
+        tip_zapisa: String, 
+        vrsta: String,      
+        tekst: String,      
+        datum: String, 
+        predmet: String,    
+        cas: String,        
+        posledica: String   
+    }]
+});
+const Ucenik = mongoose.model('Ucenik', UcenikSchema);
+
+
+// --- API RUTE ---
+
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
+// Безбедан Login преко bcrypt-а
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        const nastavnik = await Nastavnik.findOne({ username: username.trim() }).select('+password');
+
+        if (!nastavnik) {
+            return res.status(401).json({ success: false, message: "Pogrešni podaci" });
+        }
+
+        if (nastavnik.password === password.trim()) {
+            const korisnikObjekat = nastavnik.toObject();
+            delete korisnikObjekat.password;
+            return res.json({ success: true, user: korisnikObjekat });
+        }
+
+        const isMatch = await bcrypt.compare(password.trim(), nastavnik.password);
+
+        if (isMatch) {
+            const korisnikObjekat = nastavnik.toObject();
+            delete korisnikObjekat.password;
+            res.json({ success: true, user: korisnikObjekat });
         } else {
-            divPoruka.className = "poruka greska";
-            divPoruka.innerText = "Грешка: " + (rezultat.poruka || "Корисничко име је заузето.");
+            res.status(401).json({ success: false, message: "Pogrešni podaci" });
         }
     } catch (err) {
-        divPoruka.className = "poruka greska";
-        divPoruka.innerText = "Грешка: Неуспешно повезивање са сервером.";
+        res.status(500).json({ error: err.message });
     }
-}
-    </script>
-</body>
-</html>
+});
+
+app.get('/api/podaci', async (req, res) => {
+    try {
+        const ucenici = await Ucenik.find();
+        const casovi = await Cas.find();
+        const predmeti = await Predmet.find();
+        const odeljenja = await Odeljenje.find();
+        
+        const siroviNastavnici = await Nastavnik.find();
+        const nastavnici = siroviNastavnici.map(n => {
+            const nastavnikObj = n.toObject();
+            delete nastavnikObj.password; 
+            return nastavnikObj;
+        });
+
+        res.json({ ucenici, casovi, nastavnici, predmeti, odeljenja });
+        
+    } catch (err) { 
+        res.status(500).json({ error: err.message }); 
+    }
+});
+
+app.post('/api/nastavnici/promena-lozinke', async (req, res) => {
+    try {
+        const { username, novaLozinka } = req.body;
+        let korisnik = await Nastavnik.findOne({ username: username });
+        if (!korisnik && username === 'admin') {
+            korisnik = new Nastavnik({ ime: "Стефан Михајловић", uloga: "Администратор", username: "admin" });
+        }
+        if (korisnik) {
+            korisnik.password = novaLozinka; 
+            await korisnik.save();
+            return res.json({ success: true, message: "Lozinka promenjena!" });
+        }
+        res.status(404).json({ success: false });
+    } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.post('/api/predmeti', async (req, res) => {
+    try { const nov = await Predmet.create(req.body); res.status(200).json(nov); } catch (err) { res.status(400).json(err); }
+});
+
+app.post('/api/sacuvaj', async (req, res) => {
+    try {
+        const { ucenikId, predmet, vrednost, jeZakljucna, period, ulaziUProsek, napomena } = req.body;
+        const novaOcena = new Ocena({ ucenikId, predmet, vrednost, jeZakljucna, period, ulaziUProsek, napomena });
+        await novaOcena.save();
+        res.status(201).json({ poruka: 'Ocena uspešno sačuvana' });
+    } catch (error) { res.status(500).json({ poruka: 'Greška pri čuvanju', error }); }
+});
+
+app.delete('/api/predmeti/:id', async (req, res) => {
+    try { await Predmet.deleteOne({ id: req.params.id }); res.json({ success: true }); } catch (err) { res.status(400).json(err); }
+});
+
+app.post('/api/odeljenja', async (req, res) => {
+    try { const nov = await Odeljenje.create(req.body); res.status(200).json(nov); } catch (err) { res.status(400).json(err); }
+});
+
+app.delete('/api/odeljenja/:naziv', async (req, res) => {
+    try { await Odeljenje.deleteOne({ naziv: req.params.naziv }); res.json({ success: true }); } catch (err) { res.status(400).json(err); }
+});
+
+app.post('/api/sacuvaj-ocenu', async (req, res) => {
+    try {
+        const ucenikData = req.body; 
+        await Ucenik.findByIdAndUpdate(ucenikData._id, { $set: { ocene: ucenikData.ocene } });
+        res.status(200).json({ poruka: 'Sačuvano u profil učenika' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/nastavnici', async (req, res) => {
+    try { const nov = await Nastavnik.create(req.body); res.status(200).json(nov); } catch (err) { res.status(400).json(err); }
+});
+
+app.delete('/api/nastavnici/:id', async (req, res) => {
+    try { await Nastavnik.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (err) { res.status(400).json(err); }
+});
+
+app.post('/api/casovi', async (req, res) => {
+    try { const nov = await Cas.create(req.body); res.status(200).json(nov); } catch (err) { res.status(400).json(err); }
+});
+
+app.put('/api/casovi/:id', async (req, res) => {
+    try { const azur = await Cas.findByIdAndUpdate(req.params.id, req.body, { new: true }); res.json(azur); } catch (err) { res.status(400).json(err); }
+});
+
+app.delete('/api/casovi/:id', async (req, res) => {
+    try { await Cas.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (err) { res.status(400).json(err); }
+});
+
+app.post('/api/ucenici', async (req, res) => {
+    try { 
+        const nov = await Ucenik.create(req.body); 
+        res.status(200).json({ success: true, ucenik: nov }); 
+    } catch (err) { res.status(400).json({ success: false, error: err.message }); }
+});
+
+// POPRAVLJENO: Сада креира АКТИВНОГ корисника унутар Nastavnik колекције
+app.post('/api/registracija', async (req, res) => {
+    try {
+        const { korisnickoIme, lozinka } = req.body;
+
+        // 1. Provera preko ispravnog modela (Nastavnik) i polja (username)
+        const postojeciKorisnik = await Nastavnik.findOne({ username: korisnickoIme.trim() });
+        if (postojeciKorisnik) {
+            return res.status(400).json({ poruka: "Корисничко име је већ заузето!" });
+        }
+
+        // 2. Pravimo novog aktivnog nastavnika sa praznim podacima za njegovu školu
+        const noviNastavnik = new Nastavnik({
+            ime: korisnickoIme.trim(), // Privremeno ime dok sami ne promene
+            uloga: "Наставник",         // Podrazumevana uloga
+            username: korisnickoIme.trim(),
+            password: lozinka.trim(),   // Ovo će Mongoose 'pre-save' kuka automatski bezbedno da hesira!
+            odeljenja: [],              // Prazan dnevnik u startu
+            predmeti: []                // Prazan dnevnik u startu
+        });
+
+        await noviNastavnik.save();
+
+        res.status(201).json({ poruka: "Успешна регистрација!" });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ poruka: "Грешка на серверу приликом регистрације." });
+    }
+});
+
+app.put('/api/ucenici/:id', async (req, res) => {
+    try { 
+        const azur = await Ucenie.findByIdAndUpdate(req.params.id, req.body, { new: true }); 
+        res.json({ success: true, data: azur }); 
+    } catch (err) { res.status(400).json({ success: false, error: err.message }); }
+});
+
+app.delete('/api/ucenici/:id', async (req, res) => {
+    try { await Ucenik.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (err) { res.status(400).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/obrisi-ocenu', async (req, res) => {
+    try {
+        const { ucenikId, ocenaId } = req.body;
+        await Ucenik.findByIdAndUpdate(ucenikId, { $pull: { ocene: { id: Number(ocenaId) } } });
+        res.status(200).json({ poruka: 'Ocena uspešno obrisana' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Сервер је успешно покренут на порту ${PORT}`);
+});
